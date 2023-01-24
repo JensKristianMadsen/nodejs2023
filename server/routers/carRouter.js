@@ -15,7 +15,7 @@ router.get("/car", async (req, res) => {
 });
 // Getting one / :id this is a parameter we can access by typing in request req.params.id
 router.get("/car/:id", getcarId, (req, res) => {
-    res.send(res.carId.carDriveName)    
+    res.json(res.carId)    
 }
 
 );
@@ -39,13 +39,32 @@ router.post("/car", async (req, res) => {
     }
 });
 // Updating one / patch instead of put for put because we only want to udate based on what the user passes us
-router.patch("/car/:id",(req,res) => {
+router.patch("/car/:id", getcarId, async(req,res) => {
+    if(req.body.carDriveName != null) {
+        res.carId.carDriveName = req.body.carDriveName
+    }
+    if(req.body.carYear != null) {
+        res.carId.carYear = req.body.carYear
+    }
+    try{
+        const updatedCar = await res.carId.save()
+        res.json(updatedCar)
+    }catch(err){
+        res.status(400).json({message: err.message})
+    }
 
 })
 // Deleting one
-router.delete("/car/:id",(req,res) => {
+router.delete("/car/:id", getcarId, async(req,res) => {
+    try{
+        await res.carId.remove()
+        res.json({ message: " Deleted car"})
 
+    }catch (err){
+    res.status(500).json({message: err.message})
+    }
 })
+
 //Middleware function  all pass to id 
 async function getcarId(req, res, next) {
     let carId;
@@ -53,7 +72,9 @@ async function getcarId(req, res, next) {
 
       const {id} = req.params;
       carId = await Car.findById(id)
-
+        if (carId == null) {
+            return res.status(404).json({message: "Cannot find car"})
+        }
     } catch (err) {
       return res.status(404).json({ message: err.message ,message:'Cannot find car' })
     }
